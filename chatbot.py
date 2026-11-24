@@ -1,3 +1,4 @@
+from wake_word import wait_for_wake_word
 from microphone import listen
 from voice import speak
 from ollama import chat
@@ -58,33 +59,46 @@ SYSTEM_PROMPT = {
 print("Atlas is online!")
 print("Type 'exit' to quit.\n")
 
-voice_mode = False
+voice_mode = True
+conversation_active = False
 while True:
     if voice_mode:
         try:
+            if not conversation_active:
+                wait_for_wake_word()
+                conversation_active = True
+                speak("Yes?")
+
             user_input = listen().strip()
             print("You (voice): ", user_input)
         except Exception as error:
             print("Microphone error:", error)
-            voice_mode = False
+
             continue
     else:
         user_input = input("You: ").strip()
 
     if not user_input:
         continue
-    if user_input.lower() == "/voice":
-        voice_mode = True
-        print("Atlas: Voice mode activated. Speak into your microphone.")
+    if user_input.lower() in (
+        "go to sleep",
+        "goodbye atlas",
+        "standby",
+        "that's all",
+        "atlas go to sleep"
+    ):
+        conversation_active = False
+        print("Atlas: Going to sleep.")
+        speak("Finally, some peace and quiet. Goodbye!")
         continue
 
     if user_input.lower() in (
         "stop listening",
         "text mode",
         "/text",
-
     ):
         voice_mode = False
+        conversation_active = False
         print("Atlas: Text mode activated. Type your messages.")
         continue
     if user_input.lower() == "exit":
@@ -104,10 +118,12 @@ while True:
             print("Atlas: Memory clear canceled.")
 
         continue
-
-
-
     if not user_input:
+        continue
+    if user_input.lower() == "/voice":
+        voice_mode = True
+        conversation_active = False
+        print("Atlas: Voice mode activated. Say 'Hey Atlas' to wake me up.")
         continue
 
     # Retrieve the last 10 messages from SQLite
@@ -120,12 +136,14 @@ while True:
 
     # Generate AI response
     response = chat(
-        model="llama3.2:1b",
+        model="llama3.1:8b",
         messages=messages,
         options=
         {
-            "temperature": 0.7,
-            "max_tokens": 80
+            "temperature": 0.9,
+            "num_predict": 80,
+            "top_p": 0.95,
+            "repeat_penalty": 1.1
         }
 
     )

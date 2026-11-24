@@ -16,7 +16,7 @@ def audio_callback(indata, frames, time, status):
         print(status)
     audio_queue.put(bytes(indata))
 
-def listen():
+def listen(silent = False):
 
     while not audio_queue.empty():
         audio_queue.get_nowait()
@@ -25,8 +25,8 @@ def listen():
     sample_rate = int(device_info["default_samplerate"])
 
     recognizer = KaldiRecognizer(model, sample_rate)
-
-    print("Listening... Speak into your microphone.")
+    if not silent:
+        print("Listening... Speak into your microphone.")
 
     with sd.RawInputStream(
         samplerate=sample_rate,
