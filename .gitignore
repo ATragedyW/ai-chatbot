@@ -1,0 +1,22 @@
+# Atlas AI memory
+memory.json
+atlas.db
+
+# SQLite temporary files
+*.db-shm
+*.db-wal
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Virtual environments
+.venv/
+venv/
+
+# Environment variables and secrets
+.env
+.env.*
+
+# VS Code local settings
+.vscode/
