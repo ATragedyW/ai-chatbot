@@ -20,3 +20,12 @@ venv/
 
 # VS Code local settings
 .vscode/
+
+# Downloaded AI voice models
+*.onnx
+*.onnx.json
+
+# Generated voice recordings
+atlas_test.wav
+
+vosk-model-small-en-us-0.15/
