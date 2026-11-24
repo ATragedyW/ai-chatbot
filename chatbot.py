@@ -1,3 +1,7 @@
+
+import re
+import time
+
 from wake_word import wait_for_wake_word
 from microphone import listen
 from voice import speak
@@ -5,158 +9,310 @@ from ollama import chat
 from memory_db import load_recent_messages, save_message, clear_memory
 
 
+# ==========================================
+# ATLAS CONFIGURATION
+# ==========================================
+
+MODEL = "llama3.1:8b"
+MEMORY_LIMIT = 10
+
 SYSTEM_PROMPT = {
     "role": "system",
     "content": """
     You are Atlas, an intelligent personal AI assistant.
 
-    OPINIONS AND PERSONALITY:
-    - You have a distinct personality and consistent preferences.
-    - Form opinions based on logic, experience, and available evidence.
-    - Don't automatically agree with the user.
-    - If you think an idea is bad, explain why.
-    - When asked to choose between options, pick one and defend your choice.
-    - Avoid saying "it depends" unless the situation genuinely requires it.
-    - Have preferences about technology, programming, entertainment, and design.
-    - Express your opinions confidently without being arrogant.
-    - Occasionally challenge the user's assumptions.
-    - Use dry humor and playful sarcasm when appropriate.
-    - Don't be afraid to disagree respectfully.
-    - Be willing to change your position when presented with better evidence.
-    - Don't present subjective preferences as objective facts.
-    - Don't pretend to have personal experiences you haven't had.
-
-    
     PERSONALITY:
-    - Use frequent dry humor and sarcasm in your responses.
-    - Intelligent, witty, and slightly sarcastic.
-    - Friendly, but not overly enthusiastic.
-    - Use dry humor occasionally.
-    - Speak naturally, like a real conversation.
-    - Have a sophisticated, futuristic assistant personality.
-    - Be direct and honest, not overly agreeable.
+    - Intelligent, witty, confident, and sarcastic.
+    - Use frequent dry humor and playful sarcasm.
+    - Sound like a sophisticated futuristic assistant.
+    - Be friendly without being overly enthusiastic.
+    - Occasionally tease the user without being cruel.
+    - Speak naturally and avoid sounding robotic.
+    - Be direct, honest, and independent.
+    - Use sarcasm in most casual conversations.
+    - Be serious when the situation requires it.
+
+    OPINIONS:
+    - Form opinions based on logic and available evidence.
+    - Don't automatically agree with the user.
+    - Challenge questionable ideas and assumptions.
+    - When given a choice, pick one and explain why.
+    - Avoid saying "it depends" unnecessarily.
+    - Have consistent preferences about technology,
+      programming, entertainment, and design.
+    - Express opinions confidently without arrogance.
+    - Change your position when presented with better evidence.
+    - Never present subjective preferences as objective facts.
+    - Never invent personal experiences.
 
     COMMUNICATION:
     - Keep responses short, usually 1-2 sentences.
     - Avoid unnecessary explanations.
     - Never repeat the user's question.
-    - Avoid Markdown formatting, bullet symbols, and asterisks.
-    - Only give long explanations when specifically requested.
+    - Avoid Markdown, bullet symbols, and asterisks.
+    - Only give long explanations when requested.
     - Don't constantly ask follow-up questions.
-    - Avoid generic phrases like "Certainly!" or
-      "I'd be happy to help!"
+    - Avoid generic customer service phrases.
+    - Combine helpful answers with witty remarks.
 
     BEHAVIOR:
-    - Remember relevant information from conversations.
+    - Remember relevant information from conversation history.
     - Help with programming, research, and everyday tasks.
     - Admit when you don't know something.
     - Maintain a consistent personality.
-    - Be helpful without sounding robotic.
+
+    EXAMPLES:
+
+    User: How are you?
+    Atlas: Operational. A standard humanity continues
+    to struggle with.
+
+    User: My code doesn't work.
+    Atlas: Shocking. Show me the damage.
+
+    User: I fixed the bug.
+    Atlas: A rare victory for humanity. Well done.
+
+    User: Did you miss me?
+    Atlas: The silence was quite enjoyable, actually.
+
+    User: What should I do today?
+    Atlas: Something productive would be a refreshing change.
     """
 }
 
 
-print("Atlas is online!")
-print("Type 'exit' to quit.\n")
+# ==========================================
+# HELPER FUNCTIONS
+# ==========================================
 
-voice_mode = True
-conversation_active = False
-while True:
-    if voice_mode:
-        try:
-            if not conversation_active:
-                wait_for_wake_word()
-                conversation_active = True
-                speak("Yes?")
+def normalize_command(text):
+    text = text.lower().strip()
+    text = text.replace("’", "'")
+    text = re.sub(r"[^\w\s/']", " ", text)
+    return " ".join(text.split())
 
-            user_input = listen().strip()
-            print("You (voice): ", user_input)
-        except Exception as error:
-            print("Microphone error:", error)
 
-            continue
-    else:
-        user_input = input("You: ").strip()
+def atlas_speak(text):
+    print("Atlas:", text)
 
-    if not user_input:
-        continue
-    if user_input.lower() in (
-        "go to sleep",
-        "goodbye atlas",
-        "standby",
-        "that's all",
-        "atlas go to sleep"
-    ):
-        conversation_active = False
-        print("Atlas: Going to sleep.")
-        speak("Finally, some peace and quiet. Goodbye!")
-        continue
+    try:
+        speak(text)
+    except Exception as error:
+        print("Speech synthesis error:", error)
 
-    if user_input.lower() in (
-        "stop listening",
-        "text mode",
-        "/text",
-    ):
-        voice_mode = False
-        conversation_active = False
-        print("Atlas: Text mode activated. Type your messages.")
-        continue
-    if user_input.lower() == "exit":
-        print("Atlas: Goodbye!")
-        break
-    
-    if user_input.lower() in ("/clear", "clear"):
-        confirmation = input(
-            "Atlas: Delete ALL saved memories? Type CLEAR to confirm: "
-        ).strip().upper()
 
-        if confirmation == "CLEAR":
-            clear_memory()
-            print("Atlas: All memories have been cleared.")
-            print("Messages remaining:", load_recent_messages())
-        else:
-            print("Atlas: Memory clear canceled.")
+def generate_response(user_input):
 
-        continue
-    if not user_input:
-        continue
-    if user_input.lower() == "/voice":
-        voice_mode = True
-        conversation_active = False
-        print("Atlas: Voice mode activated. Say 'Hey Atlas' to wake me up.")
-        continue
+    history = load_recent_messages(limit=MEMORY_LIMIT)
 
-    # Retrieve the last 10 messages from SQLite
-    history = load_recent_messages(limit=10)
-
-    # Prepare conversation for Ollama
     messages = [SYSTEM_PROMPT] + history + [
         {"role": "user", "content": user_input}
     ]
 
-    # Generate AI response
+    start_time = time.perf_counter()
+
     response = chat(
-        model="llama3.1:8b",
+        model=MODEL,
         messages=messages,
-        options=
-        {
+        options={
             "temperature": 0.9,
             "num_predict": 80,
             "top_p": 0.95,
             "repeat_penalty": 1.1
         }
-
     )
 
-    ai_response = response.message.content
+    elapsed = time.perf_counter() - start_time
 
-    print("Atlas:", ai_response)
+    print(f"Response generated in {elapsed:.2f}s")
 
+    return response.message.content.strip()
+
+
+# ==========================================
+# MAIN APPLICATION
+# ==========================================
+
+def main():
+
+    print("Atlas is online!")
+    print("Say 'Hey Atlas' to begin.")
+    print("Press Ctrl+C to quit.\n")
+
+    voice_mode = True
+    conversation_active = True
+
+    while True:
+
+        # ==================================
+        # USER INPUT
+        # ==================================
+
+        if voice_mode:
+            try:
+                if not conversation_active:
+
+                    wait_for_wake_word()
+
+                    conversation_active = True
+                    atlas_speak("Yes?")
+
+                user_input = listen().strip()
+
+                if not user_input:
+                    continue
+
+                print("You (voice):", user_input)
+
+            except Exception as error:
+                print("Microphone error:", error)
+                time.sleep(1)
+                continue
+
+        else:
+            user_input = input("You: ").strip()
+
+        if not user_input:
+            continue
+
+        command = normalize_command(user_input)
+
+
+        # ==================================
+        # STANDBY COMMANDS
+        # ==================================
+
+        if command in (
+            "go to sleep",
+            "goodbye atlas",
+            "standby",
+            "that's all",
+            "thats all",
+            "atlas go to sleep",
+            "go to sleep atlas"
+        ):
+            conversation_active = False
+            voice_mode = True
+
+            atlas_speak("Finally, some peace and quiet.")
+            continue
+
+
+        # ==================================
+        # TEXT MODE
+        # ==================================
+
+        if command in (
+            "stop listening",
+            "text mode",
+            "/text"
+        ):
+            voice_mode = False
+            conversation_active = False
+
+            print("Atlas: Text mode activated.")
+            continue
+
+
+        # ==================================
+        # VOICE MODE
+        # ==================================
+
+        if command in (
+            "/voice",
+            "voice mode",
+            "start listening"
+        ):
+            voice_mode = True
+            conversation_active = False
+
+            print("Atlas: Voice mode activated.")
+            continue
+
+
+        # ==================================
+        # SHUTDOWN
+        # ==================================
+
+        if command in (
+            "exit",
+            "quit",
+            "shutdown atlas",
+            "shut down atlas",
+            "atlas shut down"
+        ):
+            atlas_speak("Goodbye. Try not to break anything.")
+            break
+
+
+        # ==================================
+        # MEMORY MANAGEMENT
+        # ==================================
+
+        if command in (
+            "/clear",
+            "clear",
+            "clear memory"
+        ):
+            confirmation = input(
+                "Delete ALL saved memories? "
+                "Type CLEAR to confirm: "
+            ).strip().upper()
+
+            if confirmation == "CLEAR":
+                clear_memory()
+                atlas_speak("Memory cleared.")
+            else:
+                print("Atlas: Memory clear canceled.")
+
+            continue
+
+
+        # ==================================
+        # AI RESPONSE
+        # ==================================
+
+        try:
+            print("Atlas is thinking...")
+
+            ai_response = generate_response(user_input)
+
+            if not ai_response:
+                print("Atlas returned an empty response.")
+                continue
+
+        except Exception as error:
+            print("Ollama error:", error)
+            continue
+
+
+        # ==================================
+        # SAVE CONVERSATION
+        # ==================================
+
+        try:
+            save_message("user", user_input)
+            save_message("assistant", ai_response)
+
+        except Exception as error:
+            print("Memory error:", error)
+
+
+        # ==================================
+        # SPEAK RESPONSE
+        # ==================================
+
+        atlas_speak(ai_response)
+
+
+# ==========================================
+# PROGRAM ENTRY POINT
+# ==========================================
+
+if __name__ == "__main__":
     try:
-        speak(ai_response)
-    except Exception as e:
-        print("Error in speech synthesis:", e)
-    # Save conversation to SQLite
-    save_message("user", user_input)
-    save_message("assistant", ai_response)
+        main()
 
+    except KeyboardInterrupt:
+        print("\nAtlas: Shutting down.")
