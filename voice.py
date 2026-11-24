@@ -7,6 +7,9 @@ import winsound
 import tempfile
 from pathlib import Path
 from piper import PiperVoice
+import io
+import wave
+from threading import Lock
 
 MODEL_PATH = Path(__file__).resolve().parent / "en_US-ryan-medium.onnx"
 
@@ -69,3 +72,17 @@ if __name__ == "__main__":
         "I can answer questions, explain programming, "
         "and help you with many different tasks."
     )
+synthesis_lock = Lock()
+
+
+def generate_audio(text):
+
+    text = clean_for_speech(text)
+
+    buffer = io.BytesIO()
+
+    with synthesis_lock:
+        with wave.open(buffer, "wb") as wav_file:
+            voice.synthesize_wav(text, wav_file)
+
+    return buffer.getvalue()

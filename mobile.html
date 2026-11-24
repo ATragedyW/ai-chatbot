@@ -1,0 +1,1019 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Atlas Mobile</title>
+
+    <style>
+        #audioButton {
+    width: 100%;
+    margin-top: 12px;
+    padding: 14px;
+    background: #101c2a;
+    border: 1px solid #38bdf8;
+    border-radius: 10px;
+    color: #38bdf8;
+}
+        .voice-controls {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+    }
+
+    .voice-controls button {
+    flex: 1;
+    background: #101c2a;
+    border: 1px solid #38bdf8;
+    }
+
+    .recording {
+    background: #991b1b !important;
+    border-color: #ef4444 !important;
+    animation: breathe 1s infinite;
+    }
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #080d16;
+            color: #e2e8f0;
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            max-width: 650px;
+            margin: auto;
+        }
+
+        h1 {
+            color: #38bdf8;
+            letter-spacing: 12px;
+            text-align: center;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #64748b;
+            font-size: 13px;
+        }
+
+        .orb {
+            width: 120px;
+            height: 120px;
+            border: 2px solid #38bdf8;
+            border-radius: 50%;
+            margin: 30px auto;
+            box-shadow: 0 0 30px #0891b2;
+            animation: breathe 3s infinite;
+        }
+
+        @keyframes breathe {
+            0%, 100% {
+                transform: scale(0.95);
+                opacity: 0.6;
+            }
+
+            50% {
+                transform: scale(1.05);
+                opacity: 1;
+            }
+        }
+
+        .state {
+            display: flex;
+            gap: 8px;
+            margin: 20px 0;
+        }
+
+        .state div {
+            flex: 1;
+            background: #101c2a;
+            border-radius: 8px;
+            text-align: center;
+            padding: 12px 6px;
+            font-size: 13px;
+        }
+
+        .state span {
+            display: block;
+            color: #38bdf8;
+            margin-top: 8px;
+        }
+
+        #history {
+            height: 40vh;
+            overflow-y: auto;
+            padding: 12px;
+            border: 1px solid #233449;
+            border-radius: 12px;
+            margin: 15px 0;
+        }
+
+        .message {
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 10px;
+            line-height: 1.5;
+            overflow-wrap: anywhere;
+            white-space: pre-wrap;
+        }
+
+        .atlas {
+            background: #101c2a;
+            border-left: 3px solid #38bdf8;
+        }
+
+        .user {
+            background: #172c40;
+            text-align: right;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px;
+            color: white;
+            background: #101c2a;
+            border: 1px solid #233449;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        button {
+            background: #0891b2;
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+        }
+
+        #status {
+            text-align: center;
+            color: #38bdf8;
+            font-size: 12px;
+            margin: 15px;
+        }
+        #conversationButton {
+    width: 100%;
+    margin-top: 12px;
+    padding: 16px;
+    background: #0891b2;
+    border: 1px solid #38bdf8;
+    font-size: 15px;
+    font-weight: bold;
+    border-radius: 10px;
+    }
+
+#conversationButton.active {
+    background: #991b1b;
+    border-color: #ef4444;
+    box-shadow: 0 0 15px #ef444455;
+    }
+    </style>
+    <meta name="apple-mobile-web-app-capable"
+      content="yes">
+
+    <meta name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent">
+
+    <meta name="apple-mobile-web-app-title"
+      content="Atlas">
+
+    <meta name="theme-color"
+      content="#080d16">
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>ATLAS</h1>
+
+    <p class="subtitle">
+        PERSONAL INTELLIGENCE SYSTEM
+    </p>
+
+    <div class="orb"></div>
+
+    <input
+        id="key"
+        type="password"
+        placeholder="Atlas access key"
+        autocomplete="off"
+    >
+
+    <div class="state">
+        <div>
+            Personality
+            <span id="mode">Unknown</span>
+        </div>
+
+        <div>
+            Mood
+            <span id="mood">Unknown</span>
+        </div>
+
+        <div>
+            Voice
+            <span id="voice">Unknown</span>
+        </div>
+    </div>
+
+    <div id="history"></div>
+
+    <form id="chatForm" class="input-row">
+
+        <input
+            id="message"
+            placeholder="Communicate with Atlas..."
+            maxlength="4000"
+            autocomplete="off"
+        >
+
+        <button id="sendButton" type="submit">
+            Send
+        </button>
+
+    </form>
+
+    <div class="voice-controls">
+
+    <button id="micButton" type="button">
+        Start Recording
+    </button>
+
+    <button id="replayButton" type="button" disabled>
+        Replay Voice
+    </button>
+
+</div>
+
+<button id="audioButton" type="button"
+        onclick="unlockAudio()">
+    Enable Audio
+</button>
+
+<button id="conversationButton" type="button">
+    Start Conversation
+</button>
+<p id="status">SYSTEM READY</p>
+<script>
+const chatHistory = document.getElementById("history");
+const messageInput = document.getElementById("message");
+const keyInput = document.getElementById("key");
+const status = document.getElementById("status");
+const sendButton = document.getElementById("sendButton");
+const micButton = document.getElementById("micButton");
+const replayButton = document.getElementById("replayButton");
+const conversationButton =
+    document.getElementById("conversationButton");
+
+let recording = null;
+let audioContext = null;
+let conversationActive = false;
+let busy = false;
+let voiceEnabled = true;
+let lastReply = "";
+let session = 0;
+let speechVersion = 0;
+
+// CONVERSATION DISPLAY
+
+function addMessage(sender, text) {
+
+    const element = document.createElement("div");
+
+    element.className = "message " + sender;
+    element.textContent =
+        (sender === "atlas" ? "Atlas: " : "You: ") + text;
+
+    chatHistory.appendChild(element);
+    chatHistory.scrollTop = chatHistory.scrollHeight;
+}
+
+function updateControls() {
+
+    sendButton.disabled = busy || conversationActive;
+
+    micButton.disabled =
+        conversationActive || (busy && !recording);
+
+    replayButton.disabled =
+        busy || conversationActive ||
+        !lastReply || !voiceEnabled;
+
+    conversationButton.disabled =
+        busy && !conversationActive;
+
+    conversationButton.textContent = conversationActive
+        ? "End Conversation"
+        : "Start Conversation";
+
+    conversationButton.classList.toggle(
+        "active", conversationActive
+    );
+}
+
+function setBusy(value) {
+
+    busy = value;
+    updateControls();
+}
+
+// CONVERSATION STATE
+
+function validSession(ticket) {
+
+    return conversationActive &&
+        ticket === session &&
+        !document.hidden;
+}
+
+function stopConversation(message = "CONVERSATION ENDED") {
+
+    conversationActive = false;
+    session++;
+    speechVersion++;
+
+    stopMobileAudio();
+
+    if (recording && recording.auto) {
+
+        recording.cancelled = true;
+
+        if (recording.recorder.state === "recording") {
+            recording.recorder.stop();
+        }
+
+        releaseRecording(recording);
+    }
+
+    if (audioContext) {
+
+        audioContext.close().catch(() => {});
+        audioContext = null;
+    }
+
+    status.textContent = message;
+    updateControls();
+}
+
+// VOICE OUTPUT
+
+let audioUnlocked = false;
+
+const mobileAudio = new Audio();
+
+let audioURL = null;
+let audioText = "";
+
+function stopMobileAudio() {
+
+    mobileAudio.onended = null;
+    mobileAudio.onerror = null;
+
+    mobileAudio.pause();
+}
+
+function unlockAudio() {
+
+    speak("Atlas online.");
+}
+
+async function speak(
+    text,
+    auto = false,
+    ticket = session
+) {
+
+    if (!voiceEnabled || !text) return;
+
+    const version = ++speechVersion;
+
+    stopMobileAudio();
+
+    status.textContent = "GENERATING ATLAS VOICE...";
+
+    try {
+
+        if (audioText !== text || !audioURL) {
+
+            const response = await fetch("/speak", {
+
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization":
+                        "Bearer " + keyInput.value.trim()
+                },
+
+                body: JSON.stringify({
+                    text: text
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error("Voice generation failed");
+            }
+
+            const audioBlob = await response.blob();
+
+            if (version !== speechVersion) return;
+
+            if (audioURL) {
+                URL.revokeObjectURL(audioURL);
+            }
+
+            audioURL = URL.createObjectURL(audioBlob);
+            audioText = text;
+            mobileAudio.src = audioURL;
+        }
+
+        if (version !== speechVersion) return;
+
+        mobileAudio.currentTime = 0;
+        mobileAudio.volume = 1;
+
+        mobileAudio.onended = () => {
+
+            if (version !== speechVersion) return;
+
+            status.textContent = "SYSTEM READY";
+
+            if (auto && validSession(ticket)) {
+
+                setTimeout(() => {
+
+                    if (validSession(ticket)) {
+                        startRecording(true, ticket);
+                    }
+
+                }, 600);
+            }
+        };
+
+        mobileAudio.onerror = () => {
+
+            if (version !== speechVersion) return;
+
+            if (auto) stopConversation();
+
+            status.textContent = "AUDIO PLAYBACK FAILED";
+        };
+
+        status.textContent = "ATLAS IS SPEAKING...";
+
+        await mobileAudio.play();
+
+    } catch (error) {
+
+        if (version !== speechVersion) return;
+
+        console.error("Atlas voice error:", error);
+
+        if (auto) stopConversation();
+
+        status.textContent =
+            "VOICE ERROR — TAP REPLAY VOICE";
+    }
+}
+
+// SEND TO ATLAS
+
+async function sendMessage(
+    auto = false,
+    ticket = session
+) {
+
+    if (busy) return;
+
+    if (auto && !validSession(ticket)) return;
+
+    const message = messageInput.value.trim();
+    const key = keyInput.value.trim();
+
+    if (!message || !key) {
+
+        if (auto) stopConversation();
+
+        status.textContent = "MESSAGE OR ACCESS KEY REQUIRED";
+        return;
+    }
+
+    // Require manual review for destructive commands
+    if (auto && /\b(forget|delete|erase|remove|clear|wipe|reset)\b/i
+        .test(message)) {
+
+        stopConversation(
+            "REVIEW COMMAND AND PRESS SEND"
+        );
+
+        return;
+    }
+
+    setBusy(true);
+
+    addMessage("user", message);
+    messageInput.value = "";
+
+    status.textContent = "ATLAS IS THINKING...";
+
+    try {
+
+        const response = await fetch("/chat", {
+
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + key
+            },
+
+            body: JSON.stringify({
+                message: message,
+                voice_auto: auto
+            })
+        });
+
+        if (response.status === 401) {
+            throw new Error("Invalid access key.");
+        }
+
+        if (!response.ok) {
+            throw new Error("Atlas server error.");
+        }
+
+        const data = await response.json();
+
+        addMessage("atlas", data.reply);
+
+        document.getElementById("mode").textContent =
+            data.state.mode;
+
+        document.getElementById("mood").textContent =
+            data.state.mood;
+
+        document.getElementById("voice").textContent =
+            data.state.voice;
+
+        voiceEnabled = data.state.voice === "on";
+        lastReply = data.reply;
+
+        if (auto && !validSession(ticket)) return;
+
+        if (voiceEnabled) {
+
+            speak(data.reply, auto, ticket);
+
+        } else {
+
+            stopConversation("VOICE OUTPUT DISABLED");
+        }
+
+    } catch (error) {
+
+        if (auto) stopConversation();
+
+        status.textContent = error.message;
+        messageInput.value = message;
+
+    } finally {
+
+        setBusy(false);
+    }
+}
+
+document.getElementById("chatForm")
+    .addEventListener("submit", event => {
+
+        event.preventDefault();
+
+        if (!conversationActive) {
+            sendMessage();
+        }
+    });
+
+// RECORDING CLEANUP
+
+function releaseRecording(current) {
+
+    clearInterval(current.monitor);
+    clearTimeout(current.timeout);
+
+    if (current.source) {
+        current.source.disconnect();
+    }
+
+    current.stream.getTracks().forEach(track => {
+        track.stop();
+    });
+
+    if (recording === current) {
+
+        recording = null;
+
+        micButton.textContent = "Start Recording";
+        micButton.classList.remove("recording");
+    }
+}
+
+// AUTOMATIC SILENCE DETECTION
+
+function monitorSilence(current) {
+
+    const analyser = audioContext.createAnalyser();
+
+    analyser.fftSize = 1024;
+
+    current.source =
+        audioContext.createMediaStreamSource(
+            current.stream
+        );
+
+    current.source.connect(analyser);
+
+    const samples = new Float32Array(analyser.fftSize);
+
+    const threshold = 0.005;
+    const silenceDuration = 800;
+
+    let speechDetected = false;
+    let lastSpeech = Date.now();
+
+    const startedAt = Date.now();
+    
+
+    current.monitor = setInterval(() => {
+
+      
+
+        analyser.getFloatTimeDomainData(samples);
+
+        let sum = 0;
+
+        for (const sample of samples) {
+            sum += sample * sample;
+        }
+
+        const volume = Math.sqrt(sum / samples.length);
+
+        if (volume > threshold) {
+
+            speechDetected = true;
+            lastSpeech = Date.now();
+
+            status.textContent = "LISTENING TO YOU...";
+
+        } else if (
+            speechDetected &&
+            Date.now() - lastSpeech > silenceDuration
+        ) {
+
+            if (current.recorder.state === "recording") {
+                current.recorder.stop();
+            }
+
+        } else if (
+            !speechDetected &&
+            Date.now() - startedAt > 20000
+        ) {
+
+            stopConversation("NO SPEECH DETECTED");
+        }
+
+    }, 80);
+}
+
+// MICROPHONE
+
+async function startRecording(
+    auto = false,
+    ticket = session
+) {
+
+    if (busy || recording) return;
+
+    if (auto && !validSession(ticket)) return;
+
+    const key = keyInput.value.trim();
+
+    if (!key) {
+
+        if (auto) stopConversation();
+
+        status.textContent = "ACCESS KEY REQUIRED";
+        return;
+    }
+
+    setBusy(true);
+
+    let stream = null;
+    let current = null;
+
+    try {
+
+        speechVersion++;
+        stopMobileAudio();
+        status.textContent = "CONNECTING MICROPHONE...";
+        stream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true
+            }
+        });
+
+        if (auto && !validSession(ticket)) {
+
+            stream.getTracks().forEach(t => t.stop());
+            setBusy(false);
+            return;
+        }
+
+        const formats = [
+            "audio/mp4",
+            "audio/webm;codecs=opus",
+            "audio/webm"
+        ];
+
+        const format = formats.find(type =>
+            MediaRecorder.isTypeSupported(type)
+        );
+
+        const recorder = format
+            ? new MediaRecorder(stream, {mimeType: format})
+            : new MediaRecorder(stream);
+
+        current = {
+            recorder,
+            stream,
+            auto,
+            ticket,
+            cancelled: false,
+            chunks: []
+        };
+
+        recording = current;
+
+        recorder.ondataavailable = event => {
+
+            if (event.data.size > 0) {
+                current.chunks.push(event.data);
+            }
+        };
+
+        recorder.onerror = () => {
+
+            current.cancelled = true;
+            releaseRecording(current);
+
+            if (auto) stopConversation();
+
+            setBusy(false);
+
+            status.textContent = "RECORDING FAILED";
+        };
+
+        recorder.onstop = async () => {
+
+            const audio = new Blob(current.chunks, {
+                type: recorder.mimeType
+                    || "application/octet-stream"
+            });
+
+            releaseRecording(current);
+
+            if (current.cancelled ||
+                (auto && !validSession(ticket))) {
+
+                setBusy(false);
+                return;
+            }
+
+            status.textContent = "PROCESSING YOUR VOICE...";
+
+            try {
+
+                const response = await fetch("/transcribe", {
+
+                    method: "POST",
+
+                    headers: {
+                        "Authorization": "Bearer " + key,
+                        "Content-Type": audio.type
+                    },
+
+                    body: audio
+                });
+
+                if (response.status === 401) {
+                    throw new Error("Invalid access key.");
+                }
+
+                if (!response.ok) {
+                    throw new Error("Transcription failed.");
+                }
+
+                const data = await response.json();
+
+                if (auto && !validSession(ticket)) return;
+
+                if (!data.text) {
+
+                    if (auto) stopConversation();
+
+                    status.textContent = "NO SPEECH DETECTED";
+                    return;
+                }
+
+                // Voice commands that end the session
+                if (auto &&
+                    /^(?:hey atlas[,\s]+)?(?:stop listening|end conversation|goodbye)[.!?]*$/i
+                        .test(data.text.trim())) {
+
+                    stopConversation();
+                    return;
+                }
+
+                messageInput.value = data.text;
+
+                if (auto) {
+
+                    setBusy(false);
+                    await sendMessage(true, ticket);
+
+                } else {
+
+                    status.textContent =
+                        "REVIEW TRANSCRIPT AND PRESS SEND";
+                }
+
+            } catch (error) {
+
+                if (auto) stopConversation();
+
+                status.textContent = error.message;
+
+            } finally {
+
+                setBusy(false);
+            }
+        };
+
+        recorder.start();
+
+        micButton.textContent = "Stop Recording";
+        micButton.classList.add("recording");
+
+        status.textContent = "ATLAS IS LISTENING...";
+
+        updateControls();
+
+        if (auto) {
+            monitorSilence(current);
+        }
+
+        current.timeout = setTimeout(() => {
+
+            if (recorder.state === "recording") {
+                recorder.stop();
+            }
+
+        }, 30000);
+
+    } catch (error) {
+
+        if (current) {
+
+            current.cancelled = true;
+
+            if (current.recorder.state === "recording") {
+                current.recorder.stop();
+            }
+
+            releaseRecording(current);
+
+        } else if (stream) {
+
+            stream.getTracks().forEach(t => t.stop());
+        }
+
+        if (auto) stopConversation();
+
+        setBusy(false);
+
+        status.textContent =
+            "Microphone error: " + error.message;
+    }
+}
+
+// MANUAL RECORDING BUTTON
+
+micButton.addEventListener("click", () => {
+
+    if (conversationActive) return;
+
+    if (recording) {
+
+        if (recording.recorder.state === "recording") {
+            recording.recorder.stop();
+        }
+
+    } else {
+
+        startRecording();
+    }
+});
+
+// CONTINUOUS CONVERSATION BUTTON
+
+conversationButton.addEventListener("click", async () => {
+
+    if (conversationActive) {
+
+        stopConversation();
+        return;
+    }
+
+    if (busy) return;
+
+    if (!keyInput.value.trim()) {
+
+        status.textContent = "ACCESS KEY REQUIRED";
+        return;
+    }
+
+    if (!voiceEnabled) {
+
+        status.textContent =
+            "ENABLE ATLAS VOICE FIRST";
+
+        return;
+    }
+
+    const ticket = ++session;
+
+    conversationActive = true;
+    updateControls();
+
+    try {
+
+        const AudioContextClass =
+            window.AudioContext ||
+            window.webkitAudioContext;
+
+        audioContext = new AudioContextClass();
+
+        await audioContext.resume();
+
+        if (validSession(ticket)) {
+            await startRecording(true, ticket);
+        }
+
+    } catch (error) {
+
+        if (validSession(ticket)) {
+
+            stopConversation(
+                "Audio initialization failed: " + error.message
+            );
+        }
+    }
+});
+
+// Stop listening when the application is hidden
+
+document.addEventListener("visibilitychange", () => {
+
+    if (document.hidden && conversationActive) {
+        stopConversation();
+    }
+});
+
+addMessage(
+    "atlas",
+    "Continuous conversation system initialized."
+);
+
+updateControls();
+
+</script>
+</body>
+</html>
